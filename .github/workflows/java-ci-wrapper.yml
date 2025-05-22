@@ -1,0 +1,47 @@
+name: Java CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      dockerBuild:
+        description: 'Enable Docker build'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      image_name:
+        description: 'Docker image name'
+        required: false
+        default: 'ashu-image'
+
+env:
+  DOCKER_BUILD: ${{ github.event.inputs.dockerBuild || 'false' }}
+  REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+  IMAGE_NAME: ${{ github.event.inputs.image_name || 'ashu-image' }}
+
+jobs:
+  java-ci:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Make scripts executable
+      run: |
+        chmod +x scripts/wrapper/github-wrapper.sh
+        chmod +x scripts/ci/templates/java_ci/java_ci.sh
+        chmod +x scripts/common/*.sh
+    
+    - name: Set up Docker Buildx
+      if: env.DOCKER_BUILD == 'true'
+      uses: actions/setup-docker-buildx@v3
+      
+    - name: Run Java CI Pipeline
+      run: ./scripts/wrapper/github-wrapper.sh
